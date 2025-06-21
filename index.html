@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>인스타그램 팔로워/팔로잉 분석기</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2em;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .upload-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .upload-box {
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-box:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+        }
+
+        .upload-box.active {
+            border-color: #764ba2;
+            background: rgba(118, 75, 162, 0.05);
+        }
+
+        .upload-box input[type="file"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        .upload-label {
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .file-name {
+            font-size: 0.9em;
+            color: #888;
+            margin-top: 10px;
+            height: 20px;
+        }
+
+        .analyze-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            display: block;
+            margin: 0 auto;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .analyze-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .analyze-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .results-section {
+            display: none;
+            margin-top: 40px;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .user-lists {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .list-container {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .list-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .list-title .count {
+            font-size: 0.9em;
+            color: #666;
+            font-weight: normal;
+        }
+
+        .user-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .user-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .user-name {
+            flex: 1;
+            color: #333;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .info-message {
+            background: #e7f3ff;
+            color: #004085;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border-left: 4px solid #004085;
+        }
+
+        .info-message h3 {
+            margin-bottom: 10px;
+        }
+
+        .info-message ol {
+            margin-left: 20px;
+            line-height: 1.6;
+        }
+
+        /* 스크롤바 스타일 */
+        .list-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .list-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .list-container::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+
+        .list-container::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📸 인스타그램 팔로워/팔로잉 분석기</h1>
+        
+        <div class="info-message">
+            <h3>사용 방법:</h3>
+            <ol>
+                <li>인스타그램 설정 → 계정 센터 → 내 정보 → 내 정보 다운로드</li>
+                <li>다운로드 받은 파일에서 followers_1.json과 following.json 파일 찾기</li>
+                <li>아래 박스에 각각의 파일을 업로드</li>
+                <li>분석하기 버튼을 클릭하여 결과 확인</li>
+            </ol>
+        </div>
+
+        <div class="upload-section">
+            <div class="upload-box" id="followersBox">
+                <div class="upload-icon">👥</div>
+                <div class="upload-label">팔로워 파일</div>
+                <input type="file" id="followersFile" accept=".json">
+                <div class="file-name" id="followersFileName">followers_1.json 파일을 선택하세요</div>
+            </div>
+            
+            <div class="upload-box" id="followingBox">
+                <div class="upload-icon">👤</div>
+                <div class="upload-label">팔로잉 파일</div>
+                <input type="file" id="followingFile" accept=".json">
+                <div class="file-name" id="followingFileName">following.json 파일을 선택하세요</div>
+            </div>
+        </div>
+
+        <button class="analyze-btn" id="analyzeBtn" disabled>분석하기</button>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="results-section" id="resultsSection">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalFollowers">0</div>
+                    <div class="stat-label">전체 팔로워</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalFollowing">0</div>
+                    <div class="stat-label">전체 팔로잉</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="mutualCount">0</div>
+                    <div class="stat-label">맞팔로우</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="ratioValue">0%</div>
+                    <div class="stat-label">맞팔 비율</div>
+                </div>
+            </div>
+
+            <div class="user-lists">
+                <div class="list-container">
+                    <div class="list-title">
+                        🚫 나를 팔로우하지 않는 사람들
+                        <span class="count" id="notFollowingBackCount">(0명)</span>
+                    </div>
+                    <input type="text" class="search-box" id="searchNotFollowing" placeholder="검색...">
+                    <div id="notFollowingBackList"></div>
+                </div>
+
+                <div class="list-container">
+                    <div class="list-title">
+                        ❌ 내가 팔로우하지 않는 사람들
+                        <span class="count" id="notFollowedBackCount">(0명)</span>
+                    </div>
+                    <input type="text" class="search-box" id="searchNotFollowed" placeholder="검색...">
+                    <div id="notFollowedBackList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let followersData = null;
+        let followingData = null;
+        let notFollowingBack = [];
+        let notFollowedBack = [];
+
+        // 파일 업로드 핸들러
+        document.getElementById('followersFile').addEventListener('change', function(e) {
+            handleFileSelect(e, 'followers');
+        });
+
+        document.getElementById('followingFile').addEventListener('change', function(e) {
+            handleFileSelect(e, 'following');
+        });
+
+        function handleFileSelect(event, type) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const fileName = file.name;
+            const fileNameElement = type === 'followers' ? 'followersFileName' : 'followingFileName';
+            const boxElement = type === 'followers' ? 'followersBox' : 'followingBox';
+            
+            document.getElementById(fileNameElement).textContent = fileName;
+            document.getElementById(boxElement).classList.add('active');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (type === 'followers') {
+                        followersData = data;
+                    } else {
+                        followingData = data;
+                    }
+                    
+                    // 두 파일이 모두 로드되면 분석 버튼 활성화
+                    if (followersData && followingData) {
+                        document.getElementById('analyzeBtn').disabled = false;
+                    }
+                } catch (error) {
+                    showError('JSON 파일을 읽는 중 오류가 발생했습니다.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // 분석 버튼 클릭 핸들러
+        document.getElementById('analyzeBtn').addEventListener('click', analyzeData);
+
+        function analyzeData() {
+            try {
+                // 사용자 이름 추출
+                const followers = extractUsernames(followersData);
+                const following = extractUsernames(followingData);
+
+                // 통계 계산
+                const followersSet = new Set(followers);
+                const followingSet = new Set(following);
+
+                // 나를 팔로우하지 않는 사람들 (내가 팔로우하지만 상대는 나를 팔로우하지 않음)
+                notFollowingBack = following.filter(user => !followersSet.has(user));
+                
+                // 내가 팔로우하지 않는 사람들 (상대는 나를 팔로우하지만 나는 팔로우하지 않음)
+                notFollowedBack = followers.filter(user => !followingSet.has(user));
+
+                // 맞팔로우
+                const mutual = followers.filter(user => followingSet.has(user));
+
+                // 결과 표시
+                displayResults(followers.length, following.length, mutual.length, notFollowingBack, notFollowedBack);
+                
+                // 결과 섹션 표시
+                document.getElementById('resultsSection').style.display = 'block';
+                
+                // 스크롤
+                document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                showError('데이터 분석 중 오류가 발생했습니다: ' + error.message);
+            }
+        }
+
+        function extractUsernames(data) {
+            const usernames = [];
+            
+            // 다양한 Instagram 데이터 형식 처리
+            if (Array.isArray(data)) {
+                // 배열 형식
+                data.forEach(item => {
+                    if (item.string_list_data) {
+                        item.string_list_data.forEach(user => {
+                            if (user.value) usernames.push(user.value);
+                        });
+                    }
+                });
+            } else if (data.relationships_followers || data.relationships_following) {
+                // 새로운 형식
+                const list = data.relationships_followers || data.relationships_following || [];
+                list.forEach(item => {
+                    if (item.string_list_data) {
+                        item.string_list_data.forEach(user => {
+                            if (user.value) usernames.push(user.value);
+                        });
+                    }
+                });
+            }
+            
+            return usernames;
+        }
+
+        function displayResults(followersCount, followingCount, mutualCount, notFollowingBack, notFollowedBack) {
+            // 통계 표시
+            document.getElementById('totalFollowers').textContent = followersCount.toLocaleString();
+            document.getElementById('totalFollowing').textContent = followingCount.toLocaleString();
+            document.getElementById('mutualCount').textContent = mutualCount.toLocaleString();
+            
+            const ratio = followingCount > 0 ? Math.round((mutualCount / followingCount) * 100) : 0;
+            document.getElementById('ratioValue').textContent = ratio + '%';
+            
+            // 카운트 업데이트
+            document.getElementById('notFollowingBackCount').textContent = `(${notFollowingBack.length}명)`;
+            document.getElementById('notFollowedBackCount').textContent = `(${notFollowedBack.length}명)`;
+            
+            // 리스트 표시
+            displayUserList('notFollowingBackList', notFollowingBack);
+            displayUserList('notFollowedBackList', notFollowedBack);
+        }
+
+        function displayUserList(elementId, users) {
+            const container = document.getElementById(elementId);
+            container.innerHTML = '';
+            
+            users.forEach(user => {
+                const userItem = document.createElement('div');
+                userItem.className = 'user-item';
+                userItem.innerHTML = `
+                    <div class="user-avatar">${user.charAt(0).toUpperCase()}</div>
+                    <div class="user-name">@${user}</div>
+                `;
+                container.appendChild(userItem);
+            });
+        }
+
+        // 검색 기능
+        document.getElementById('searchNotFollowing').addEventListener('input', function(e) {
+            filterUserList('notFollowingBackList', notFollowingBack, e.target.value);
+        });
+
+        document.getElementById('searchNotFollowed').addEventListener('input', function(e) {
+            filterUserList('notFollowedBackList', notFollowedBack, e.target.value);
+        });
+
+        function filterUserList(elementId, users, searchTerm) {
+            const filtered = users.filter(user => 
+                user.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+            displayUserList(elementId, filtered);
+        }
+
+        function showError(message) {
+            const errorElement = document.getElementById('errorMessage');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+            setTimeout(() => {
+                errorElement.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
